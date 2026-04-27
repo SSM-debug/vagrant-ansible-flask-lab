@@ -1,0 +1,82 @@
+---
+- name: Install PostgreSQL and dependencies
+  apt:
+    name:
+      - postgresql
+      - postgresql-contrib
+      - python3-psycopg2
+    state: present
+    update_cache: yes
+
+- name: Ensure PostgreSQL is started and enabled
+  service:
+    name: postgresql
+    state: started
+    enabled: yes
+
+- name: Create application database
+  become_user: postgres
+  postgresql_db:
+    name: "{{ db_name }}"
+    state: present
+
+- name: Create application user with limited privileges
+  become_user: postgres
+  postgresql_user:
+    name: "{{ db_user }}"
+    password: "{{ db_password }}"
+    state: present
+
+- name: Grant privileges on database to app user
+  become_user: postgres
+  postgresql_privs:
+    database: "{{ db_name }}"
+    roles: "{{ db_user }}"
+    privs: ALL
+    type: database
+    state: present
+
+- name: Configure PostgreSQL to listen on private network
+  lineinfile:
+    path: /etc/postgresql/14/main/postgresql.conf
+    regexp: "^#?listen_addresses"
+    line: "listen_addresses = '192.168.56.14,127.0.0.1'"
+    backup: yes
+  notify: restart postgresql
+
+- name: Allow app user to connect from web servers in pg_hba.conf
+  lineinfile:
+    path: /etc/postgresql/14/main/pg_hba.conf
+    line: "host    {{ db_name }}    {{ db_user }}    192.168.56.0/24    md5"
+    backup: yes
+  notify: restart postgresql
+
+- name: Install UFW
+  apt:
+    name: ufw
+    state: present
+
+- name: UFW - deny all incoming by default
+  ufw:
+    default: deny
+    direction: incoming
+
+- name: UFW - allow SSH
+  ufw:
+    rule: allow
+    port: "22"
+    proto: tcp
+
+- name: UFW - allow PostgreSQL only from web servers
+  ufw:
+    rule: allow
+    src: "{{ item }}"
+    port: "5432"
+    proto: tcp
+  loop:
+    - 192.168.56.12
+    - 192.168.56.13
+
+- name: UFW - enable firewall
+  ufw:
+    state: enabled

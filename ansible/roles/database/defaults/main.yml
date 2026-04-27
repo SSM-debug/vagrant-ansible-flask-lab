@@ -1,0 +1,5 @@
+---
+# Standardvärden — överskrids av vagrant/secrets.yml i produktion
+db_name: "flaskapp"
+db_user: "flaskuser"
+db_password: "changeme"

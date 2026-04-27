@@ -1,0 +1,7 @@
+---
+- name: Configure database server
+  hosts: db
+  vars_files:
+    - /vagrant/secrets.yml
+  roles:
+    - database
