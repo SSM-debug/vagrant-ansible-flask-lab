@@ -1,10 +1,6 @@
-﻿# -*- mode: ruby -*-
+# -*- mode: ruby -*-
 # vi: set ft=ruby :
 
-# ============================================================
-# IP-adresser — definierade som konstanter för tydlighet
-# Ändra bara här om du vill byta subnät
-# ============================================================
 CONTROL_IP  = "192.168.56.10"
 NGINX_IP    = "192.168.56.11"
 WEB1_IP     = "192.168.56.12"
@@ -13,32 +9,56 @@ DB_IP       = "192.168.56.14"
 
 Vagrant.configure("2") do |config|
 
-  # Gemensam bas-image för alla VMs
   config.vm.box = "ubuntu/jammy64"
-
-  # Stäng av automatisk vbguest-uppdatering (undviker långa väntetider)
   config.vbguest.auto_update = false if Vagrant.has_plugin?("vagrant-vbguest")
 
-  # ── VM 1: control (Ansible kontrollnod) ──────────────────
   config.vm.define "control" do |ctl|
     ctl.vm.hostname = "control"
     ctl.vm.network "private_network", ip: CONTROL_IP
-
+    ctl.vm.synced_folder "../ansible", "/home/vagrant/ansible"
     ctl.vm.provider "virtualbox" do |vb|
       vb.name   = "flask-lab-control"
       vb.memory = 512
       vb.cpus   = 1
     end
+    ctl.vm.provision "shell", privileged: false, inline: <<-SHELL
+sudo apt-get update -y
+sudo apt-get install -y ansible
+cat > ~/.ansible.cfg << 'EOF'
+[defaults]
+inventory         = /home/vagrant/inventory.ini
+remote_user       = vagrant
+host_key_checking = False
+private_key_file  = /home/vagrant/.ssh/control_ed25519
+
+[privilege_escalation]
+become        = True
+become_method = sudo
+become_user   = root
+EOF
+cat > ~/inventory.ini << 'EOF'
+[lb]
+nginx ansible_host=192.168.56.11
+
+[webservers]
+web1 ansible_host=192.168.56.12
+web2 ansible_host=192.168.56.13
+
+[db]
+database ansible_host=192.168.56.14
+
+[all:vars]
+ansible_user=vagrant
+ansible_ssh_private_key_file=/home/vagrant/.ssh/control_ed25519
+EOF
+echo "=== Ansible control node ready ==="
+    SHELL
   end
 
-  # ── VM 2: nginx (lastbalanserare) ─────────────────────────
   config.vm.define "nginx" do |ng|
     ng.vm.hostname = "nginx"
     ng.vm.network "private_network", ip: NGINX_IP
-
-    # Enda VM med port forwarding — säkerhetsdesignval
     ng.vm.network "forwarded_port", guest: 80, host: 8080
-
     ng.vm.provider "virtualbox" do |vb|
       vb.name   = "flask-lab-nginx"
       vb.memory = 512
@@ -46,12 +66,9 @@ Vagrant.configure("2") do |config|
     end
   end
 
-  # ── VM 3: web1 (Flask + Gunicorn) ────────────────────────
   config.vm.define "web1" do |web1|
     web1.vm.hostname = "web1"
     web1.vm.network "private_network", ip: WEB1_IP
-
-    # Ingen port forwarding — nås bara via nginx inifrån nätverket
     web1.vm.provider "virtualbox" do |vb|
       vb.name   = "flask-lab-web1"
       vb.memory = 512
@@ -59,12 +76,9 @@ Vagrant.configure("2") do |config|
     end
   end
 
-  # ── VM 4: web2 (Flask + Gunicorn) ────────────────────────
   config.vm.define "web2" do |web2|
     web2.vm.hostname = "web2"
     web2.vm.network "private_network", ip: WEB2_IP
-
-    # Ingen port forwarding — nås bara via nginx inifrån nätverket
     web2.vm.provider "virtualbox" do |vb|
       vb.name   = "flask-lab-web2"
       vb.memory = 512
@@ -72,12 +86,9 @@ Vagrant.configure("2") do |config|
     end
   end
 
-  # ── VM 5: database (PostgreSQL) ──────────────────────────
   config.vm.define "database" do |db|
     db.vm.hostname = "database"
     db.vm.network "private_network", ip: DB_IP
-
-    # Ingen port forwarding — port 5432 öppen bara för web1/web2 via UFW
     db.vm.provider "virtualbox" do |vb|
       vb.name   = "flask-lab-database"
       vb.memory = 768
