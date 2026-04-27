@@ -23,7 +23,24 @@ Vagrant.configure("2") do |config|
     end
     ctl.vm.provision "shell", privileged: false, inline: <<-SHELL
 sudo apt-get update -y
-sudo apt-get install -y ansible
+sudo apt-get install -y ansible sshpass
+ssh-keygen -t ed25519 -f ~/.ssh/control_ed25519 -N "" -C "ansible-control"
+mkdir -p ~/.vagrant_keys
+for host in nginx web1 web2 database; do
+  cp /vagrant/.vagrant/machines/${host}/virtualbox/private_key ~/.vagrant_keys/${host}_key
+  chmod 600 ~/.vagrant_keys/${host}_key
+done
+PUBKEY=$(cat ~/.ssh/control_ed25519.pub)
+for host in nginx web1 web2 database; do
+  case $host in
+    nginx)    ip=11 ;;
+    web1)     ip=12 ;;
+    web2)     ip=13 ;;
+    database) ip=14 ;;
+  esac
+  ssh -i ~/.vagrant_keys/${host}_key -o StrictHostKeyChecking=no vagrant@192.168.56.${ip} "echo '${PUBKEY}' >> ~/.ssh/authorized_keys"
+  echo "Key distributed to: ${host}"
+done
 cat > ~/.ansible.cfg << 'EOF'
 [defaults]
 inventory         = /home/vagrant/inventory.ini
