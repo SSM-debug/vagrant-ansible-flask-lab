@@ -5,3 +5,10 @@
     - /vagrant/secrets.yml
   roles:
     - database
+
+- name: Configure web servers
+  hosts: webservers
+  vars_files:
+    - /vagrant/secrets.yml
+  roles:
+    - flask

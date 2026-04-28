@@ -1,0 +1,19 @@
+[Unit]
+Description=Flask Application
+After=network.target
+
+[Service]
+User={{ flask_user }}
+WorkingDirectory={{ flask_app_dir }}
+Environment="DB_HOST={{ db_host }}"
+Environment="DB_NAME={{ db_name }}"
+Environment="DB_USER={{ db_user }}"
+Environment="DB_PASS={{ db_password }}"
+ExecStart={{ flask_app_dir }}/venv/bin/gunicorn --workers 2 --bind 0.0.0.0:{{ flask_port }} app:app
+Restart=always
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

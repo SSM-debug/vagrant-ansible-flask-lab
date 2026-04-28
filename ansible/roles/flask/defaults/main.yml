@@ -1,0 +1,8 @@
+---
+flask_app_dir: /opt/flask
+flask_user: vagrant
+flask_port: 5000
+db_host: "192.168.56.14"
+db_name: "flaskapp"
+db_user: "flaskuser"
+db_password: "changeme"

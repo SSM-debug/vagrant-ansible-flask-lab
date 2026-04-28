@@ -1,0 +1,52 @@
+---
+- name: Install Python and pip
+  apt:
+    name:
+      - python3
+      - python3-pip
+      - python3-venv
+    state: present
+    update_cache: yes
+
+- name: Create Flask app directory
+  file:
+    path: "{{ flask_app_dir }}"
+    state: directory
+    owner: "{{ flask_user }}"
+    mode: "0755"
+
+- name: Copy Flask application
+  copy:
+    src: app.py
+    dest: "{{ flask_app_dir }}/app.py"
+    owner: "{{ flask_user }}"
+    mode: "0644"
+  notify: restart flask
+
+- name: Create Python virtual environment
+  command: python3 -m venv {{ flask_app_dir }}/venv
+  args:
+    creates: "{{ flask_app_dir }}/venv"
+
+- name: Install Flask and dependencies in venv
+  pip:
+    name:
+      - flask
+      - gunicorn
+      - psycopg2-binary
+    virtualenv: "{{ flask_app_dir }}/venv"
+    state: present
+
+- name: Deploy systemd service file
+  template:
+    src: flask.service.j2
+    dest: /etc/systemd/system/flask.service
+    mode: "0644"
+  notify: restart flask
+
+- name: Enable and start Flask service
+  systemd:
+    name: flask
+    state: started
+    enabled: yes
+    daemon_reload: yes
