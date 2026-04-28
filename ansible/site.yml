@@ -12,3 +12,8 @@
     - /vagrant/secrets.yml
   roles:
     - flask
+
+- name: Configure load balancer
+  hosts: lb
+  roles:
+    - nginx
