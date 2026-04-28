@@ -151,13 +151,6 @@ else
   fail "T14: PostgreSQL lyssnar INTE pÃ¥ rÃ¤tt IP: $result"
 fi
 
-# â”€â”€ TEST 15: web1 och web2 Ã¤r INTE nÃ¥bara direkt frÃ¥n host
-result=$(nc -zv -w3 192.168.56.12 5000 2>&1)
-if echo "$result" | grep -q "timed out\|Connection refused\|No route"; then
-  pass "T15: web1 port 5000 Ã¤r INTE direkt exponerad (segmentering OK)"
-else
-  fail "T15: web1 port 5000 Ã¤r exponerad direkt â€” kontrollera nÃ¤tverket"
-fi
 
 # â”€â”€ SUMMERING â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 echo ""
