@@ -17,3 +17,8 @@
   hosts: lb
   roles:
     - nginx
+
+- name: Security hardening on all nodes
+  hosts: all
+  roles:
+    - security_hardening

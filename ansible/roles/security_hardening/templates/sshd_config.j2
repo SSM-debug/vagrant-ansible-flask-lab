@@ -1,0 +1,17 @@
+# SSH-härdning — genererad av Ansible
+# Autentiseringsbaserad härdning
+PasswordAuthentication no
+PermitRootLogin no
+PubkeyAuthentication yes
+AuthenticationMethods publickey
+
+# Exponeringsbaserad härdning
+AllowUsers vagrant
+MaxAuthTries 3
+LoginGraceTime 20
+
+# Övrigt
+X11Forwarding no
+PrintMotd no
+AcceptEnv LANG LC_*
+Subsystem sftp /usr/lib/openssh/sftp-server
